@@ -1,0 +1,4 @@
+[0m[[0m[31merror[0m] [0m[0m/Users/okamurakento/Desktop/Scala_workspace/scala-study/BasicCourse/04/RegexSearch.scala:5:23: not found: value matchindexes[0m
+[0m[[0m[31merror[0m] [0m[0m    println(s"出現場所: ${matchindexes}")[0m
+[0m[[0m[31merror[0m] [0m[0m                      ^[0m
+[0m[[0m[31merror[0m] [0m[0mone error found[0m
