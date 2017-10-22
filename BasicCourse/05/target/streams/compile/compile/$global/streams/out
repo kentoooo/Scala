@@ -1,0 +1,9 @@
+[0m[[0m[31merror[0m] [0m[0m/Users/okamurakento/Desktop/Scala_workspace/scala-study/BasicCourse/05/ParticalSumDFS.scala:15:44: not found: value o[0m
+[0m[[0m[31merror[0m] [0m[0m    val(isMatch,result) = isMatchAndResult(o,Seq())[0m
+[0m[[0m[31merror[0m] [0m[0m                                           ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/okamurakento/Desktop/Scala_workspace/scala-study/BasicCourse/05/ParticalSumDFS.scala:16:9: type mismatch;[0m
+[0m[[0m[31merror[0m] [0m[0m found   : Any[0m
+[0m[[0m[31merror[0m] [0m[0m required: Boolean[0m
+[0m[[0m[31merror[0m] [0m[0m    if (isMatch) println(s"Yes ${result}") else println("No")[0m
+[0m[[0m[31merror[0m] [0m[0m        ^[0m
+[0m[[0m[31merror[0m] [0m[0mtwo errors found[0m
