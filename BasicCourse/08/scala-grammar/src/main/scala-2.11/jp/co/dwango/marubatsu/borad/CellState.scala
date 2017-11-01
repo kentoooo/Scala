@@ -1,4 +1,6 @@
-package jp.co.dwango.marubatsu.borad
+package jp.co.dwango.marubatsu.board
 
-sealed abstract class CellState
-case object Empty
+private[marubatsu] sealed abstract class CellState
+private[marubatsu] case object Empty extends CellState
+private[marubatsu] case object Maru extends CellState
+private[marubatsu] case object Batsu extends CellState
