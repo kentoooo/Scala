@@ -1,23 +1,22 @@
 package jp.ed.nnn.nightcoreplayer
+
 import java.io.File
 import javafx.application.Application
 import javafx.beans.value.{ChangeListener, ObservableValue}
-import javafx.scene.Scene
-import javafx.scene.control.{Label, TableColumn, TableRow, TableView}
-import javafx.scene.input.MouseEvent
 import javafx.collections.FXCollections
 import javafx.event.EventHandler
-import javafx.scene.layout.{BorderPane, HBox}
 import javafx.geometry.Pos
+import javafx.scene.Scene
 import javafx.scene.control.cell.PropertyValueFactory
-import javafx.scene.input.{DragEvent, TransferMode}
+import javafx.scene.control._
+import javafx.scene.input.{DragEvent, MouseEvent, TransferMode}
+import javafx.scene.layout.{BorderPane, HBox}
 import javafx.scene.media.{Media, MediaPlayer, MediaView}
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import javafx.util.{Callback, Duration}
 
-
-object Main extends App{
+object Main extends App {
   Application.launch(classOf[Main], args: _*)
 }
 
@@ -29,10 +28,9 @@ class Main extends Application {
   private[this] val tableMinWidth = 300
 
   override def start(primaryStage: Stage): Unit = {
-
     val mediaView = new MediaView()
-    val timeLabel = new Label()
 
+    val timeLabel = new Label()
     timeLabel.setText("00:00:00/00:00:00")
     timeLabel.setTextFill(Color.WHITE)
 
@@ -45,14 +43,13 @@ class Main extends Application {
     tableView.setMinWidth(tableMinWidth)
     val movies = FXCollections.observableArrayList[Movie]()
     tableView.setItems(movies)
-
     tableView.setRowFactory(new Callback[TableView[Movie], TableRow[Movie]]() {
       override def call(param: TableView[Movie]): TableRow[Movie] = {
         val row = new TableRow[Movie]()
         row.setOnMouseClicked(new EventHandler[MouseEvent] {
           override def handle(event: MouseEvent): Unit = {
             if (event.getClickCount >= 1 && !row.isEmpty) {
-              playMovie(row.getItem,mediaView,timeLabel)
+              playMovie(row.getItem, tableView, mediaView, timeLabel)
             }
           }
         })
@@ -60,14 +57,23 @@ class Main extends Application {
       }
     })
 
+
     val fileNameColumn = new TableColumn[Movie, String]("ファイル名")
     fileNameColumn.setCellValueFactory(new PropertyValueFactory("fileName"))
     fileNameColumn.setPrefWidth(160)
     val timeColumn = new TableColumn[Movie, String]("時間")
     timeColumn.setCellValueFactory(new PropertyValueFactory("time"))
     timeColumn.setPrefWidth(80)
+    val deleteActionColumn = new TableColumn[Movie, Long]("削除")
+    deleteActionColumn.setCellValueFactory(new PropertyValueFactory("id"))
+    deleteActionColumn.setPrefWidth(60)
+    deleteActionColumn.setCellFactory(new Callback[TableColumn[Movie, Long], TableCell[Movie, Long]]() {
+      override def call(param: TableColumn[Movie, Long]): TableCell[Movie, Long] = {
+        new DeleteCell(movies, mediaView, tableView)
+      }
+    })
 
-    tableView.getColumns.setAll(fileNameColumn, timeColumn)
+    tableView.getColumns.setAll(fileNameColumn, timeColumn, deleteActionColumn)
 
     val baseBorderPane = new BorderPane()
     baseBorderPane.setStyle("-fx-background-color: Black")
@@ -83,7 +89,7 @@ class Main extends Application {
     scene.setOnDragOver(new EventHandler[DragEvent] {
       override def handle(event: DragEvent): Unit = {
         if (event.getGestureSource != scene &&
-          event.getDragboard().hasFiles) {
+          event.getDragboard.hasFiles) {
           event.acceptTransferModes(TransferMode.COPY_OR_MOVE: _*)
         }
         event.consume()
@@ -98,23 +104,31 @@ class Main extends Application {
             val filePath = f.getAbsolutePath
             val fileName = f.getName
             val media = new Media(f.toURI.toString)
-            val time = formatTime(media.getDuration)
-            val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
-            while (movies.contains(movie)) {
-              movie.setId(movie.getId + 1L)
-            }
-            movies.add(movie)
+            val player = new MediaPlayer(media)
+            player.setOnReady(new Runnable {
+              override def run(): Unit = {
+                val time = formatTime(media.getDuration)
+                val movie = Movie(System.currentTimeMillis(), fileName, time, filePath, media)
+                while (movies.contains(movie)) {
+                  movie.setId(movie.getId + 1L)
+                }
+                movies.add(movie)
+                player.dispose()
+              }
+            })
           }
         }
         event.consume()
       }
     })
-    primaryStage.setTitle("mp4ファイルをドロッグ&ドロップしてください")
+
+    primaryStage.setTitle("mp4ファイルをドラッグ&ドロップしてください")
+
     primaryStage.setScene(scene)
     primaryStage.show()
   }
 
-  private[this] def playMovie(movie: Movie,mediaView:MediaView,timeLabel: Label): Unit = {
+  private[this] def playMovie(movie: Movie, tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {
     if (mediaView.getMediaPlayer != null) {
       val oldPlayer = mediaView.getMediaPlayer
       oldPlayer.stop()
@@ -130,21 +144,33 @@ class Main extends Application {
       override def run(): Unit =
         timeLabel.setText(formatTime(mediaPlayer.getCurrentTime, mediaPlayer.getTotalDuration))
     })
+    mediaPlayer.setOnEndOfMedia(new Runnable {
+      override def run(): Unit = playNext(tableView, mediaView, timeLabel)
+    })
 
     mediaView.setMediaPlayer(mediaPlayer)
     mediaPlayer.setRate(1.25)
     mediaPlayer.play()
   }
 
+  private[this] def playNext(tableView: TableView[Movie], mediaView: MediaView, timeLabel: Label): Unit = {
+    val selectionModel = tableView.getSelectionModel
+    if (selectionModel.isEmpty) return
+    val index = selectionModel.getSelectedIndex
+    val nextIndex = (index + 1) % tableView.getItems.size()
+    selectionModel.select(nextIndex)
+    val movie = selectionModel.getSelectedItem
+    playMovie(movie, tableView, mediaView, timeLabel)
+  }
+
   private[this] def formatTime(elapsed: Duration): String = {
-  "%02d:%02d:%02d".format(
-    elapsed.toHours.toInt,
-    elapsed.toMinutes.toInt % 60,
-    elapsed.toSeconds.toInt % 60
+    "%02d:%02d:%02d".format(
+      elapsed.toHours.toInt,
+      elapsed.toMinutes.toInt % 60,
+      elapsed.toSeconds.toInt % 60
     )
   }
 
   private[this] def formatTime(elapsed: Duration, duration: Duration): String =
     s"${formatTime(elapsed)}/${formatTime(duration)}"
-
 }
